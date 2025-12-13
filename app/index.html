@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyrus</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- <script src="requirements.js"></script> -->
+    <script src="../scripts/reqs.js"></script>
+    <script src="../scripts/connections.js"></script>
 </head>
 
 <body>
@@ -46,10 +47,23 @@
                             <div class="title">Refresh</div>
                         </div>
                         <div class="seperator"></div>
-                        <div class="btn worth">
-                            <div class="icn">add</div>
+                        <div class="btn worth" id="new_cl_btn">
+                            <div class="icn" id="new_cl_addbtn">add</div>
                             <div class="title">New client</div>
                         </div>
+                    </div>
+                    <div class="white pane horiz visibility" id="newClInstrPan">
+                        <div class="instr">
+                            <div style="margin-bottom: .5em;">Scan the QR or use string for manual setup</div>
+                            <div class="label">Manual setup string:</div>
+                            <div class="inpgrp">
+                                <input type="text" placeholder="loading..." disabled="true" id="manual_token_input"></input>
+                                <button class="icn btn" tooltip="Copy">content_copy</button>
+                            </div>
+                        </div>
+                        <div class="seperator"></div>
+                        <div id="qrScannable"></div>
+                        
                     </div>
                     <div class="large white pane">
                         <table id="connections_table">

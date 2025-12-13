@@ -24,7 +24,7 @@
     direction: ltr;
     -webkit-font-smoothing: antialiased;
     font-variation-settings: 'FILL' 0;
-    transition: font-variation-settings 0.3s ease;
+    transition: font-variation-settings, transform 0.3s ease;
 }
 
 .btn:hover .icn {
@@ -154,6 +154,13 @@ html,
     }
 }
 
+@keyframes slide {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+}
+
 .page {
     flex: 1;
     padding: 1em;
@@ -178,6 +185,12 @@ html,
         display: flex;
         gap: .5em;
         flex-direction: column;
+        animation: slide .3s;
+
+
+        &.pane.visibility {
+            display: none;
+        }
 
         &.white {
             border: 1px solid var(--cl3);
@@ -246,22 +259,30 @@ table {
 .icnbtngrp {
     display: flex;
     flex-direction: row;
+
     &>.btn {
         padding: 5px;
         border-radius: .5em;
         transition: .3s;
         cursor: pointer;
+
         &:hover {
             background-color: var(--cl3);
         }
     }
 }
 
-.white.pane.actions {
+.white.pane.actions,
+.white.pane.horiz {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     padding: .5em;
+
+    &.white.pane.horiz {
+        padding: 1em;
+    }
+
     &>.btn {
         padding: .5em;
         border-radius: .5em;
@@ -272,19 +293,78 @@ table {
         gap: .3em;
         padding-right: .8em;
         align-items: center;
+
         &>.icn {
             font-size: 1em;
         }
+
         &:hover {
             background-color: var(--cl5);
+
+            &>.icn {
+                transform: scale(1.3);
+
+                &.rotatediag {
+                    transform: rotate(45deg) scale(1.3);
+                }
+            }
         }
+
         &.worth {
             background-color: var(--cl1);
             color: var(--cl5);
+
+            &.onit {
+
+                background-color: var(--cl5);
+                color: var(--cl1);
+            }
         }
     }
 }
 
 .seperator {
     flex: 1;
+}
+
+.instr {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.inpgrp {
+    display: flex;
+    flex-direction: row;
+    border-radius: .5em;
+    overflow: hidden;
+    border: 1px solid var(--cl3);
+    width: 100%;
+    max-width: 700px;
+    margin-top: .3em;
+
+    &>* {
+        border: 0;
+        min-width: 0;
+        background-color: transparent;
+        padding: .2em .3em;
+    }
+
+    &>input {
+        flex: 1;
+        padding: .2em .5em;
+        font-size: 1em;
+    }
+
+    &>button {
+        background-color: var(--cl1);
+        color: var(--cl6);
+        padding: .7em;
+        font-size: 1em;
+    }
+}
+
+.rotatediag {
+    transform: rotate(45deg);
 }

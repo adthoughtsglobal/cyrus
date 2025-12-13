@@ -17,7 +17,7 @@ document.querySelectorAll("[clickTgt]").forEach(x => {
         moveHL(x)
     })
 })
-document, addEventListener("DOMContentLoaded", setTimeout(() => {
+setTimeout(() => {
     moveHL(document.querySelector(".btn.active"));
 
     const tooltip = document.createElement("div")
@@ -48,5 +48,47 @@ document, addEventListener("DOMContentLoaded", setTimeout(() => {
             tooltip.style.opacity = "0"
         })
     })
-}, 500))
+}, 500);
 
+const peer = new Peer()
+
+peer.on('open', id => {
+    const host = new PeerHost(peer, {
+        handler: (event, payload) => {
+            if (event === 'connect') {
+                console.log('connected', payload)
+            }
+            if (event === 'disconnect') {
+                console.log('disconnected', payload.id)
+            }
+            if (event === 'data') {
+                console.log(payload.id, payload.data)
+            }
+            if (event === 'error') {
+                console.error(payload)
+            }
+        }
+    })
+
+    let qrCodeElement = document.getElementById("qrScannable")
+    const payload = host.getQRPayload()
+
+    document.getElementById("manual_token_input").value = payload;
+    new QRCode(qrCodeElement, {
+        text: payload,
+        width: 128,
+        height: 128
+    })
+
+
+    window.host = host
+})
+
+let addicn = document.getElementById("new_cl_addbtn");
+let addbtnitself = document.getElementById("new_cl_btn");
+let newClInstrPan = document.getElementById("newClInstrPan");
+addbtnitself.addEventListener("click", () => {
+    addbtnitself.classList.toggle("onit")
+    addicn.classList.toggle("rotatediag");
+    newClInstrPan.classList.toggle("visibility")
+})
