@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyrus</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- <script src="requirements.js"></script> -->
 </head>
 
 <body>
@@ -15,49 +16,84 @@
                 <b>Cyrus</b> <span>Server Dashboard</span>
             </div>
             <div class="pages_nav">
-                <div class="btn active">
+                <div class="nav_hl"></div>
+
+                <div class="btn active" clickTgt="connections">
                     <div class="icn">devices</div>
                     <div class="title">Connections</div>
                 </div>
-                <div class="btn">
+                <div class="btn" clickTgt="files">
                     <div class="icn">folder</div>
                     <div class="title">Files</div>
                 </div>
-                <div class="btn">
+                <div class="btn" clickTgt="hub">
                     <div class="icn">network_node</div>
                     <div class="title">Hub</div>
                 </div>
             </div>
+
         </div>
         <div class="pages">
-            <div class="page" id="connections">
-                <h1>Connections</h1>
-                <p>Connections are clients who are linked to this server. Click <kbd>New</kbd> for adding a connection.</p>
-                <table>
+            <div class="page active" id="connections">
+                <div class="pane large">
+                    <div class="white pane actions">
+                        <div class="btn">
+                            <div class="icn">sports_martial_arts</div>
+                            <div class="title">Kick all</div>
+                        </div>
+                        <div class="btn">
+                            <div class="icn">refresh</div>
+                            <div class="title">Refresh</div>
+                        </div>
+                        <div class="seperator"></div>
+                        <div class="btn worth">
+                            <div class="icn">add</div>
+                            <div class="title">New client</div>
+                        </div>
+                    </div>
+                    <div class="large white pane">
+                        <table id="connections_table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nickname</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                            <tr>
+                                <td>--</td>
+                                <td>Leonardo Da Vinci</td>
+                                <td>Connected</td>
+                                <td>
+                                    <div class="icnbtngrp">
+                                        <div class="icn btn" tooltip="Kick">
+                                            sports_martial_arts
+                                        </div>
+                                        <div class="icn btn" tooltip="Reconnect">
+                                            refresh
+                                        </div>
+                                        <div class="icn btn" tooltip="Change Nickname">
+                                            badge
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="white pane">
+                    <div class="label">Stats</div>
+                    <h1 id="connected_number">0</h1>
+                    <s1 class="subheading">Clients connected</s1>
+                </div>
+            </div>
+            <div class="page" id="files">
+                <table id="connections_table">
                     <tr>
-                        <th>ID</th>
-                        <th>Uptime</th>
+                        <th>File Name</th>
+                        <th>Modified</th>
+                        <th>Size</th>
+                        <th>Storage</th>
                         <th>Actions</th>
-                    </tr>
-                    <tr>
-                        <td>ID</td>
-                        <td>Uptime</td>
-                        <td>Actions</td>
-                    </tr>
-                    <tr>
-                        <td>ID</td>
-                        <td>Uptime</td>
-                        <td>Actions</td>
-                    </tr>
-                    <tr>
-                        <td>ID</td>
-                        <td>Uptime</td>
-                        <td>Actions</td>
-                    </tr>
-                    <tr>
-                        <td>ID</td>
-                        <td>Uptime</td>
-                        <td>Actions</td>
                     </tr>
                 </table>
             </div>
