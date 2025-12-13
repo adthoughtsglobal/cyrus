@@ -24,18 +24,28 @@ class PeerHost {
     this.handler('disconnect', { id })
   }
 
-  reconnectbyid(id) {
+  async reconnectbyid(id, timeout = 5000) {
     const c = this.clients.find(x => x.id === id)
-    if (!c) return
+    if (!c) return false
+
     const tries = (this.reconnectAttempts.get(id) || 0) + 1
     if (tries > 1) {
       this.#remove(id)
-      return
+      return false
     }
     this.reconnectAttempts.set(id, tries)
-    const conn = this.peer.connect(id)
-    this.#bind(conn, c)
-    this.handler('reconnect', { id })
+
+    try {
+      const conn = await this.#connectAsync(id, timeout)
+      this.#bind(conn, c)
+      c.conn = conn
+      this.handler('reconnect', { id })
+      return true
+    } catch (e) {
+      this.#remove(id)
+      this.handler('error', { id, error: e })
+      return false
+    }
   }
 
   changenick(id, nick) {
@@ -93,6 +103,34 @@ class PeerHost {
     if (i === -1) return
     this.clients.splice(i, 1)
     this.handler('disconnect', { id })
+  }
+
+  #connectAsync(id, timeout) {
+    return new Promise((resolve, reject) => {
+      const conn = this.peer.connect(id)
+      let done = false
+
+      const t = setTimeout(() => {
+        if (done) return
+        done = true
+        conn.close()
+        reject(new Error('connect timeout'))
+      }, timeout)
+
+      conn.on('open', () => {
+        if (done) return
+        done = true
+        clearTimeout(t)
+        resolve(conn)
+      })
+
+      conn.on('error', e => {
+        if (done) return
+        done = true
+        clearTimeout(t)
+        reject(e)
+      })
+    })
   }
 
   #randomNick() {

@@ -16,38 +16,46 @@ document.querySelectorAll("[clickTgt]").forEach(x => {
         x.classList.add("active")
         moveHL(x)
     })
-})
-setTimeout(() => {
-    moveHL(document.querySelector(".btn.active"));
-
+});
+function assignToolTips() {
     const tooltip = document.createElement("div")
-    tooltip.style.position = "fixed"
-    tooltip.style.padding = "4px 8px"
-    tooltip.style.background = "#222"
-    tooltip.style.color = "#fff"
-    tooltip.style.fontSize = "12px"
-    tooltip.style.borderRadius = "4px"
-    tooltip.style.pointerEvents = "none"
-    tooltip.style.opacity = "0"
-    tooltip.style.zIndex = "10"
-    tooltip.style.transition = "opacity .1s"
+    Object.assign(tooltip.style, {
+        position: "fixed",
+        padding: "4px 8px",
+        background: "#222",
+        color: "#fff",
+        fontSize: "12px",
+        borderRadius: "4px",
+        pointerEvents: "none",
+        opacity: "0",
+        zIndex: "10",
+        transition: "opacity .1s"
+    })
     document.body.appendChild(tooltip)
 
-    document.querySelectorAll("[tooltip]").forEach(el => {
-        el.addEventListener("mouseenter", e => {
-            tooltip.textContent = el.getAttribute("tooltip")
-            tooltip.style.opacity = "1"
-        })
-
-        el.addEventListener("mousemove", e => {
-            tooltip.style.left = e.clientX + 10 + "px"
-            tooltip.style.top = e.clientY + 10 + "px"
-        })
-
-        el.addEventListener("mouseleave", () => {
-            tooltip.style.opacity = "0"
-        })
+    document.addEventListener("mouseover", e => {
+        const el = e.target.closest("[tooltip]")
+        if (!el) return
+        tooltip.textContent = el.getAttribute("tooltip")
+        tooltip.style.opacity = "1"
     })
+
+    document.addEventListener("mousemove", e => {
+        if (tooltip.style.opacity === "0") return
+        tooltip.style.left = e.clientX + 10 + "px"
+        tooltip.style.top = e.clientY + 10 + "px"
+    })
+
+    document.addEventListener("mouseout", e => {
+        if (e.target.closest("[tooltip]")) {
+            tooltip.style.opacity = "0"
+        }
+    })
+}
+
+setTimeout(() => {
+    moveHL(document.querySelector(".btn.active"));
+    assignToolTips();
 }, 500);
 
 const peer = new Peer()
@@ -57,15 +65,20 @@ peer.on('open', id => {
         handler: (event, payload) => {
             if (event === 'connect') {
                 console.log('connected', payload)
+                renderClientsList();
             }
             if (event === 'disconnect') {
                 console.log('disconnected', payload.id)
+                renderClientsList();
             }
             if (event === 'data') {
                 console.log(payload.id, payload.data)
             }
             if (event === 'error') {
                 console.error(payload)
+            }
+            if (event === "nickchange") {
+                renderClientsList();
             }
         }
     })
@@ -79,9 +92,9 @@ peer.on('open', id => {
         width: 128,
         height: 128
     })
+    window.host = host;
+    renderClientsList();
 
-
-    window.host = host
 })
 
 let addicn = document.getElementById("new_cl_addbtn");
@@ -92,3 +105,59 @@ addbtnitself.addEventListener("click", () => {
     addicn.classList.toggle("rotatediag");
     newClInstrPan.classList.toggle("visibility")
 })
+const tbody = document.querySelector('#connections_table')
+let tbodyheaders = tbody.innerHTML;
+function renderClientsList() {
+    if (window.host.clients.length < 1) {
+        tbody.innerHTML = 'No Clients';
+        newClInstrPan.classList.remove("visibility")
+        return;
+    }
+    tbody.innerHTML = tbodyheaders;
+    window.host.clients.forEach(c => {
+        const tr = document.createElement('tr')
+
+        const tdId = document.createElement('td')
+        tdId.textContent = c.id
+
+        const tdNick = document.createElement('td')
+        tdNick.textContent = c.nick
+
+        const tdStatus = document.createElement('td')
+        tdStatus.textContent = 'Connected'
+
+        const tdActions = document.createElement('td')
+        const grp = document.createElement('div')
+        grp.className = 'icnbtngrp'
+
+        const kick = document.createElement('div')
+        kick.className = 'icn btn'
+        kick.setAttribute('tooltip', 'Kick')
+        kick.textContent = 'sports_martial_arts'
+        kick.onclick = () => host.kickbyid(c.id)
+
+        const reconnect = document.createElement('div')
+        reconnect.className = 'icn btn'
+        reconnect.setAttribute('tooltip', 'Reconnect')
+        reconnect.textContent = 'refresh'
+        reconnect.onclick = () => {
+        reconnect.textContent = 'rotate_right'
+            host.reconnectbyid(c.id).then(renderClientsList())
+        }
+
+        const nick = document.createElement('div')
+        nick.className = 'icn btn'
+        nick.setAttribute('tooltip', 'Change Nickname')
+        nick.textContent = 'badge'
+        nick.onclick = () => {
+            const n = prompt('New nick')
+            if (n) host.changenick(c.id, n)
+        }
+
+        grp.append(kick, reconnect, nick)
+        tdActions.appendChild(grp)
+
+        tr.append(tdId, tdNick, tdStatus, tdActions)
+        tbody.appendChild(tr)
+    });
+}

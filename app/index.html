@@ -56,14 +56,32 @@
                         <div class="instr">
                             <div style="margin-bottom: .5em;">Scan the QR or use string for manual setup</div>
                             <div class="label">Manual setup string:</div>
-                            <div class="inpgrp">
-                                <input type="text" placeholder="loading..." disabled="true" id="manual_token_input"></input>
-                                <button class="icn btn" tooltip="Copy">content_copy</button>
+                            <div class="inpgrp" id="token_grp">
+                                <input type="text" placeholder="loading..." disabled id="manual_token_input"
+                                    value="ABC123">
+                                <button class="icn btn" type="button">content_copy</button>
                             </div>
+
+                            <script>
+                                const grp = document.getElementById('token_grp')
+                                const inp = document.getElementById('manual_token_input')
+
+                                grp.addEventListener('click', () => {
+                                    if (!inp.value) return
+                                    const x = inp.value
+                                    navigator.clipboard.writeText(x)
+                                    inp.value = "Copied!"
+                                    setTimeout(() => {
+                                        inp.value = x
+                                    }, 1000)
+                                })
+
+                            </script>
+
                         </div>
                         <div class="seperator"></div>
                         <div id="qrScannable"></div>
-                        
+
                     </div>
                     <div class="large white pane">
                         <table id="connections_table">
@@ -73,24 +91,7 @@
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
-                            <tr>
-                                <td>--</td>
-                                <td>Leonardo Da Vinci</td>
-                                <td>Connected</td>
-                                <td>
-                                    <div class="icnbtngrp">
-                                        <div class="icn btn" tooltip="Kick">
-                                            sports_martial_arts
-                                        </div>
-                                        <div class="icn btn" tooltip="Reconnect">
-                                            refresh
-                                        </div>
-                                        <div class="icn btn" tooltip="Change Nickname">
-                                            badge
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
+                            
                         </table>
                     </div>
                 </div>

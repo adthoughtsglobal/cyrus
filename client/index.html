@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Peer Client</title>
+  <script src="../scripts/reqs.js"></script>
+</head>
+<body>
+
+<div id="qr-reader" style="width:300px"></div>
+
+<input id="manual" placeholder="Paste QR payload JSON">
+<button id="join">Join</button>
+
+<div id="status">idle</div>
+
+<script>
+const status = s => document.getElementById('status').textContent = s
+
+let peer
+let conn
+let hostId = null;
+
+function connect(id) {
+  peer = new Peer()
+  peer.on('open', () => {
+    conn = peer.connect(id)
+    bind()
+  })
+}
+
+function bind() {
+  conn.on('open', () => status('connected'))
+  conn.on('close', () => status('disconnected'))
+  conn.on('error', () => status('error'))
+}
+
+function handlePayload(text) {
+  const payload = JSON.parse(text)
+  hostId = payload.peerId
+  localStorage.setItem('hostPeerId', hostId)
+  connect(hostId)
+}
+
+if (hostId) {
+  connect(hostId)
+} else {
+//   const qr = new Html5Qrcode("qr-reader")
+//   qr.start(
+//     { facingMode: "environment" },
+//     { fps: 10, qrbox: 250 },
+//     text => {
+//       qr.stop()
+//       handlePayload(text)
+//     }
+//   )
+
+  document.getElementById('join').onclick = () => {
+    handlePayload(document.getElementById('manual').value)
+  }
+}
+</script>
+
+</body>
+</html>
