@@ -76,24 +76,42 @@ if (!peerId) {
     localStorage.setItem(STORAGE_KEY, peerId)
 }
 
-const peer = new Peer(peerId)
+const peer = new Peer(peerId);
+let host;
 
 peer.on('open', id => {
-    const host = new PeerHost(peer, {
+    host = new PeerHost(peer, {
         handler: (event, payload) => {
             if (event === 'connect') renderClientsList()
             if (event === 'disconnect') renderClientsList()
-            if (event === 'data') console.log(payload.id, payload.data)
-            if (event === 'error') console.error(payload)
             if (event === 'nickchange') renderClientsList()
+
+            if (event === 'json') {
+                const { clientId, type, payload: data } = payload
+                additHandleClientMethods(payload);
+
+                if (type === 'chat') {
+                    host.broadcastJSON('chat', {
+                        from: clientId,
+                        text: data
+                    })
+                }
+            }
+
+            if (event === 'binary') {
+                const { clientId, type, payload: buf } = payload
+                console.log('[bin]', clientId, type, buf.byteLength)
+            }
+
+            if (event === 'error') console.error(payload)
         }
     })
 
-    const payload = host.getQRPayload()
-    document.getElementById("manual_token_input").value = payload
+    const qrPayload = host.getQRPayload()
+    document.getElementById('manual_token_input').value = qrPayload
 
-    new QRCode(document.getElementById("qrScannable"), {
-        text: payload,
+    new QRCode(document.getElementById('qrScannable'), {
+        text: qrPayload,
         width: 128,
         height: 128
     })
@@ -102,6 +120,13 @@ peer.on('open', id => {
     renderClientsList()
 })
 
+window.sendToClient = (clientId, text) => {
+    host.sendJSON(clientId, 'chat', text)
+}
+
+window.sendBinaryToClient = (clientId, buffer) => {
+    host.sendBinary(clientId, 'blob', buffer)
+}
 
 let addicn = document.getElementById("new_cl_addbtn");
 let addbtnitself = document.getElementById("new_cl_btn");
@@ -390,7 +415,7 @@ async function renderFilesList() {
         tr.append(tdSelect, tdName, tdModified, tdSize, tdId);
         filesTable.appendChild(tr);
     });
-     const selectAllCheckbox = document.getElementById('selectAll');
+    const selectAllCheckbox = document.getElementById('selectAll');
 
     selectAllCheckbox.addEventListener('change', () => {
         const allCheckboxes = filesTable.querySelectorAll('input[type="checkbox"]:not(#selectAll)');

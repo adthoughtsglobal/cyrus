@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyrus</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="../scripts/reqs.js"></script>
-    <script src="../scripts/connections.js"></script>
+    <script defer src="../scripts/reqs.js"></script>
+    <script defer src="../scripts/connections.js"></script>
     <link rel="preload" href="../assets/icons.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 
@@ -166,7 +166,8 @@
     </div>
     <div id="toast-container" style="position: fixed; bottom: 3em; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 0.5em; pointer-events: none;"></div>
 
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
+    <script src="appScripts/sharing.js" defer></script>
 </body>
 
 </html>

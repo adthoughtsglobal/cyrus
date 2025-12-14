@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Step Audio Recorder</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the clip timeline */
+        .clip-item {
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .clip-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .clip-item.playing {
+            border: 3px solid #f97316; /* Orange 500 */
+        }
+        .time-band-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .time-band-container::-webkit-scrollbar-thumb {
+            background-color: #9ca3af; /* Gray 400 */
+            border-radius: 4px;
+        }
+        .time-band-container::-webkit-scrollbar-track {
+            background-color: #f3f4f6; /* Gray 100 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 font-[Inter]">
+
+    <div id="app" class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 md:p-10 space-y-8">
+
+        <h1 class="text-3xl font-extrabold text-gray-800 border-b pb-4">Step-by-Step Audio Recorder</h1>
+
+        <!-- Status and Message Area -->
+        <div id="status-area" class="h-10">
+            <p id="status-message" class="text-lg font-semibold text-center transition-all duration-300"></p>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+            
+            <!-- Main Action Button (Record/Pause) -->
+            <button id="main-action-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
+                <span id="main-action-text">START RECORDING</span>
+            </button>
+
+            <!-- Redo Step Button -->
+            <button id="redo-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 disabled:bg-gray-400" disabled>
+                Redo Last Step
+            </button>
+
+            <!-- Finish/Combine Button -->
+            <button id="finish-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition duration-150 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 disabled:bg-gray-400" disabled>
+                End & Combine Recording
+            </button>
+        </div>
+
+        <!-- Timer Display -->
+        <div id="timer-display" class="text-center pt-4">
+            <div class="text-xs text-gray-500 uppercase font-medium">Current Clip Duration</div>
+            <div id="timer-value" class="text-4xl font-mono font-bold text-gray-700">00:00.00</div>
+        </div>
+
+        <!-- Clip Timeline / Time Band -->
+        <div class="space-y-4 pt-6 border-t mt-6">
+            <h2 class="text-xl font-semibold text-gray-700">Recording Clips (<span id="clip-count">0</span> Total)</h2>
+            <div id="clip-timeline" class="time-band-container flex space-x-2 overflow-x-auto p-2 bg-gray-100 rounded-lg min-h-[100px] items-center">
+                <p id="empty-message" class="text-gray-500 text-center w-full">Start recording to add your first clip here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Element for Playback -->
+    <audio id="audio-player" class="hidden"></audio>
+
+    <script>
+        // Global variables for the application state
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let audioClips = []; // Stores the final Blobs for each step: [{ blob: Blob, duration: number }]
+        let currentState = 'IDLE'; // States: 'IDLE', 'RECORDING', 'PAUSED'
+        let currentClipStartTime = 0;
+        let timerInterval = null;
+        let stream = null;
+        let audioPlayer = null;
+        let playingClipIndex = -1;
+
+        // DOM elements
+        const mainActionBtn = document.getElementById('main-action-btn');
+        const mainActionText = document.getElementById('main-action-text');
+        const redoBtn = document.getElementById('redo-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const statusMessage = document.getElementById('status-message');
+        const clipTimeline = document.getElementById('clip-timeline');
+        const emptyMessage = document.getElementById('empty-message');
+        const clipCount = document.getElementById('clip-count');
+        const timerValue = document.getElementById('timer-value');
+
+        // --- Utility Functions ---
+
+        /**
+         * Formats milliseconds into MM:SS.ms string.
+         * @param {number} ms - Milliseconds duration.
+         * @returns {string} Formatted time string.
+         */
+        function formatDuration(ms) {
+            const totalSeconds = ms / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            const milliseconds = Math.floor((ms % 1000) / 10); // show hundredths of a second
+
+            const paddedMinutes = String(minutes).padStart(2, '0');
+            const paddedSeconds = String(seconds).padStart(2, '0');
+            const paddedMs = String(milliseconds).padStart(2, '0');
+
+            return `${paddedMinutes}:${paddedSeconds}.${paddedMs}`;
+        }
+
+        /**
+         * Updates the UI state of the application.
+         */
+        function updateUI() {
+            // Update button visibility and text based on state
+            if (currentState === 'IDLE') {
+                mainActionBtn.disabled = false;
+                mainActionText.textContent = 'START RECORDING';
+                mainActionBtn.classList.replace('bg-orange-600', 'bg-indigo-600');
+                mainActionBtn.classList.replace('hover:bg-orange-700', 'hover:bg-indigo-700');
+                mainActionBtn.classList.replace('bg-red-600', 'bg-indigo-600');
+                mainActionBtn.classList.replace('hover:bg-red-700', 'hover:bg-indigo-700');
+                redoBtn.disabled = audioClips.length === 0;
+                finishBtn.disabled = audioClips.length === 0;
+                timerValue.textContent = '00:00.00';
+            } else if (currentState === 'RECORDING') {
+                mainActionBtn.disabled = false;
+                mainActionText.textContent = 'PAUSE STEP';
+                mainActionBtn.classList.replace('bg-indigo-600', 'bg-red-600');
+                mainActionBtn.classList.replace('hover:bg-indigo-700', 'hover:bg-red-700');
+                redoBtn.disabled = true;
+                finishBtn.disabled = true;
+                showMessage("Recording clip...", "red");
+            } else if (currentState === 'PAUSED') {
+                mainActionBtn.disabled = false;
+                mainActionText.textContent = 'RECORD NEXT CLIP';
+                mainActionBtn.classList.replace('bg-red-600', 'bg-indigo-600');
+                mainActionBtn.classList.replace('hover:bg-red-700', 'hover:bg-indigo-700');
+                redoBtn.disabled = audioClips.length === 0;
+                finishBtn.disabled = audioClips.length === 0;
+                showMessage("Paused. Ready for next step.", "blue");
+            }
+            
+            // General UI updates
+            clipCount.textContent = audioClips.length;
+            updateTimeline();
+        }
+
+        /**
+         * Displays a status message to the user.
+         * @param {string} msg - The message text.
+         * @param {string} color - Tailwind color class (e.g., 'red', 'green', 'blue').
+         */
+        function showMessage(msg, color) {
+            statusMessage.textContent = msg;
+            // Clear previous color classes
+            statusMessage.className = 'text-lg font-semibold text-center transition-all duration-300';
+            if (color === 'red') statusMessage.classList.add('text-red-600');
+            else if (color === 'green') statusMessage.classList.add('text-green-600');
+            else if (color === 'blue') statusMessage.classList.add('text-blue-600');
+            else if (color === 'yellow') statusMessage.classList.add('text-yellow-600');
+            else statusMessage.classList.add('text-gray-700');
+        }
+
+        // --- Timeline and Playback ---
+
+        /**
+         * Renders the audio clips into the timeline view.
+         */
+        function updateTimeline() {
+            clipTimeline.innerHTML = ''; // Clear existing timeline
+            if (audioClips.length === 0) {
+                emptyMessage.style.display = 'block';
+                clipTimeline.appendChild(emptyMessage);
+                return;
+            }
+            emptyMessage.style.display = 'none';
+
+            audioClips.forEach((clip, index) => {
+                const clipElement = document.createElement('div');
+                clipElement.className = `clip-item p-3 rounded-lg flex flex-col justify-center items-center bg-white border border-gray-300 ${index === playingClipIndex ? 'playing' : ''}`;
+                clipElement.style.minWidth = '120px'; // Minimum width for visibility
+                clipElement.style.width = `${Math.min(150, 50 + clip.duration / 500)}px`; // Dynamic width based on duration (up to 150px)
+
+                clipElement.innerHTML = `
+                    <p class="text-sm font-bold text-gray-800">Clip ${index + 1}</p>
+                    <p class="text-xs text-gray-600">${formatDuration(clip.duration)}</p>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mt-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.22zM14.657 5.343a1 1 0 010 1.414 7 7 0 000 9.9 1 1 0 01-1.414 1.414 9 9 0 010-12.728 1 1 0 011.414 0zM16.07 3.929a1 1 0 011.414 0 11 11 0 010 15.556 1 1 0 01-1.414-1.414 9 9 0 000-12.728z" clip-rule="evenodd" />
+                    </svg>
+                `;
+                clipElement.onclick = () => toggleClipPlayback(index);
+                clipTimeline.appendChild(clipElement);
+            });
+        }
+
+        /**
+         * Starts or stops playback of a specific clip.
+         * @param {number} index - The index of the clip to play.
+         */
+        function toggleClipPlayback(index) {
+            const clip = audioClips[index];
+            if (!clip) return;
+
+            // Stop any currently playing audio
+            if (audioPlayer.paused === false || playingClipIndex !== -1) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+                const oldPlayingElement = clipTimeline.querySelector(`.clip-item.playing`);
+                if (oldPlayingElement) oldPlayingElement.classList.remove('playing');
+                playingClipIndex = -1;
+            }
+
+            // If we stopped the *same* clip, we're done.
+            if (playingClipIndex === index) {
+                playingClipIndex = -1;
+                updateTimeline();
+                return;
+            }
+
+            // Start playing the new clip
+            playingClipIndex = index;
+            const clipUrl = URL.createObjectURL(clip.blob);
+            audioPlayer.src = clipUrl;
+            
+            audioPlayer.play().catch(e => {
+                showMessage("Playback failed: " + e.message, "red");
+                playingClipIndex = -1;
+            });
+
+            // Update UI to show which clip is playing
+            updateTimeline();
+        }
+
+        // Event listener for audio playback end
+        document.addEventListener('DOMContentLoaded', () => {
+            audioPlayer = document.getElementById('audio-player');
+            audioPlayer.onended = () => {
+                const oldPlayingElement = clipTimeline.querySelector(`.clip-item.playing`);
+                if (oldPlayingElement) oldPlayingElement.classList.remove('playing');
+                playingClipIndex = -1;
+                updateTimeline();
+            };
+        });
+
+        // --- Recording Logic ---
+
+        /**
+         * Starts the duration timer.
+         */
+        function startTimer() {
+            currentClipStartTime = Date.now();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - currentClipStartTime;
+                timerValue.textContent = formatDuration(elapsed);
+            }, 10);
+        }
+
+        /**
+         * Stops the duration timer and returns the elapsed time.
+         * @returns {number} The duration in milliseconds.
+         */
+        function stopTimer() {
+            clearInterval(timerInterval);
+            const duration = Date.now() - currentClipStartTime;
+            timerValue.textContent = formatDuration(duration);
+            return duration;
+        }
+
+        /**
+         * Attempts to start audio recording.
+         */
+        async function startRecording() {
+            if (!stream) {
+                showMessage("Requesting microphone access...", "gray");
+                try {
+                    // Get microphone access
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                    // Find a supported MIME type for the recorder
+                    let mimeType = 'audio/webm';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                         mimeType = 'audio/ogg';
+                         if (!MediaRecorder.isTypeSupported(mimeType)) {
+                            showMessage("Error: No supported audio recording format found.", "red");
+                            return;
+                         }
+                    }
+
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = saveClip;
+
+                } catch (err) {
+                    showMessage(`Microphone access denied or failed: ${err.name}.`, "red");
+                    currentState = 'IDLE';
+                    updateUI();
+                    return;
+                }
+            }
+
+            // Start the recorder
+            audioChunks = [];
+            mediaRecorder.start();
+            startTimer();
+            currentState = 'RECORDING';
+            updateUI();
+        }
+
+        /**
+         * Saves the current audio chunks as a new clip (step).
+         */
+        function saveClip() {
+            const duration = stopTimer();
+            
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                // We use a small object to store the clip data, including its original Blob
+                audioClips.push({ blob: audioBlob, duration: duration, index: audioClips.length }); 
+                showMessage(`Clip ${audioClips.length} saved successfully.`, "green");
+            } else {
+                showMessage("Recording stopped, but no audio data was captured.", "yellow");
+            }
+
+            audioChunks = [];
+            currentState = 'PAUSED';
+            updateUI();
+        }
+        
+        /**
+         * Pauses the current recording (which triggers the saveClip logic).
+         */
+        function pauseRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop(); // saveClip is called by onstop handler
+            }
+        }
+
+        /**
+         * Removes the last recorded clip (redo step).
+         */
+        function redoLastStep() {
+            if (audioClips.length > 0) {
+                audioClips.pop();
+                showMessage("Last clip removed. Redo complete.", "yellow");
+            }
+            // Transition back to PAUSED state if there are still clips, or IDLE if none
+            currentState = audioClips.length > 0 ? 'PAUSED' : 'IDLE';
+            updateUI();
+        }
+
+        // --- Web Audio API Merging and WAV Encoding ---
+
+        /**
+         * Converts an AudioBuffer into a WAV formatted Blob.
+         * (Utility function for combining separate audio clips)
+         * @param {AudioBuffer} buffer - The buffer to encode.
+         * @returns {Blob} The final WAV audio Blob.
+         */
+        function audioBufferToWAV(buffer) {
+            const numOfChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const bufferLength = buffer.length;
+            const bytesPerSample = 2; // 16-bit PCM
+
+            // Total size of the WAV file (44 bytes for header + data length)
+            const dataLength = bufferLength * numOfChannels * bytesPerSample;
+            const fileLength = 36 + dataLength;
+
+            // Create a DataView to write the WAV header and data
+            const arrayBuffer = new ArrayBuffer(fileLength + 8); // +8 for RIFF chunk ID and size
+            const view = new DataView(arrayBuffer);
+            let offset = 0;
+
+            // Helper function to write a string (4 characters)
+            function writeString(s) {
+                for (let i = 0; i < s.length; i++) {
+                    view.setUint8(offset++, s.charCodeAt(i));
+                }
+            }
+
+            // Helper function to write a 16-bit integer
+            function writeUint16(i) {
+                view.setUint16(offset, i, true); // little-endian
+                offset += 2;
+            }
+
+            // Helper function to write a 32-bit integer
+            function writeUint32(i) {
+                view.setUint32(offset, i, true); // little-endian
+                offset += 4;
+            }
+
+            // --- RIFF Chunk (Start) ---
+            writeString('RIFF'); // Chunk ID
+            writeUint32(fileLength); // Chunk Size (Total file size - 8)
+            writeString('WAVE'); // Format
+
+            // --- FMT Sub-chunk ---
+            writeString('fmt '); // Sub-chunk 1 ID
+            writeUint32(16); // Sub-chunk 1 Size (16 for PCM)
+            writeUint16(1); // Audio Format (1 for PCM)
+            writeUint16(numOfChannels); // Number of Channels
+            writeUint32(sampleRate); // Sample Rate
+            writeUint32(sampleRate * numOfChannels * bytesPerSample); // Byte Rate
+            writeUint16(numOfChannels * bytesPerSample); // Block Align
+            writeUint16(bytesPerSample * 8); // Bits Per Sample (16)
+
+            // --- DATA Sub-chunk ---
+            writeString('data'); // Sub-chunk 2 ID
+            writeUint32(dataLength); // Sub-chunk 2 Size (data only)
+
+            // --- Write PCM data ---
+            const maxVal = 32767; // Max value for 16-bit signed integer
+            for (let i = 0; i < bufferLength; i++) {
+                for (let channel = 0; channel < numOfChannels; channel++) {
+                    // Get float sample value (-1.0 to 1.0)
+                    const sample = buffer.getChannelData(channel)[i];
+                    // Convert to 16-bit integer and write
+                    const intSample = Math.max(-1, Math.min(1, sample)) * maxVal;
+                    view.setInt16(offset, intSample, true);
+                    offset += 2;
+                }
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+
+        /**
+         * Decodes and merges multiple audio Blobs into a single WAV Blob using the Web Audio API.
+         * @param {Blob[]} clipBlobs - Array of audio Blobs to merge.
+         * @returns {Promise<Blob>} A promise that resolves to the final merged WAV Blob.
+         */
+        async function mergeAudioClips(clipBlobs) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                throw new Error("Web Audio API not supported in this browser.");
+            }
+            const audioCtx = new AudioContext();
+
+            // 1. Decode all clips into AudioBuffers
+            const decodedBuffers = await Promise.all(
+                clipBlobs.map(async (blob) => {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    return audioCtx.decodeAudioData(arrayBuffer);
+                })
+            );
+
+            // 2. Calculate total length and channel count
+            if (decodedBuffers.length === 0) return null;
+            
+            const sampleRate = decodedBuffers[0].sampleRate;
+            const channelCount = decodedBuffers[0].numberOfChannels;
+            
+            let totalLength = 0;
+            decodedBuffers.forEach(buffer => {
+                if (buffer.sampleRate !== sampleRate || buffer.numberOfChannels !== channelCount) {
+                    throw new Error("Clips have inconsistent sample rates or channel counts.");
+                }
+                totalLength += buffer.length;
+            });
+
+            // 3. Create the master AudioBuffer
+            const masterBuffer = audioCtx.createBuffer(channelCount, totalLength, sampleRate);
+
+            // 4. Copy data from all clips into the master buffer
+            for (let i = 0; i < channelCount; i++) {
+                let currentOffset = 0;
+                decodedBuffers.forEach(buffer => {
+                    masterBuffer.copyToChannel(buffer.getChannelData(i), i, currentOffset);
+                    currentOffset += buffer.length;
+                });
+            }
+
+            // 5. Encode the master buffer into a WAV Blob
+            const finalWAVBlob = audioBufferToWAV(masterBuffer);
+            audioCtx.close();
+            return finalWAVBlob;
+        }
+
+        /**
+         * Combines all clips into a single audio file and opens it in a new tab.
+         * Now uses the Web Audio API to correctly merge the audio data.
+         */
+        async function finishRecording() {
+            if (currentState === 'RECORDING') {
+                showMessage("Please pause the current recording before finalizing.", "yellow");
+                return;
+            }
+            if (audioClips.length === 0) {
+                showMessage("No clips to combine. Start recording first.", "yellow");
+                return;
+            }
+
+            // Show loading message while processing
+            showMessage("Processing and combining clips... Please wait.", "blue");
+            mainActionBtn.disabled = true;
+            redoBtn.disabled = true;
+            finishBtn.disabled = true; 
+
+            try {
+                const clipBlobs = audioClips.map(clip => clip.blob);
+                
+                // Use the new Web Audio API based merge function
+                const finalBlob = await mergeAudioClips(clipBlobs);
+                
+                if (!finalBlob) {
+                    throw new Error("Failed to merge audio clips.");
+                }
+
+                // Create a temporary URL and open it
+                const audioUrl = URL.createObjectURL(finalBlob);
+                
+                // Note: The browser will open the audio file for playback/download.
+                const newWindow = window.open(audioUrl, '_blank');
+                if (newWindow) {
+                    newWindow.focus();
+                } else {
+                    throw new Error("Popup blocked! Please check your browser settings.");
+                }
+
+                // Cleanup: Reset the state for a new recording session
+                audioClips = [];
+                currentState = 'IDLE';
+                showMessage("Recording finalized and opened successfully!", "green");
+
+            } catch (error) {
+                // Check if the AudioContext was the source of the error
+                const errorMsg = error.message.includes("decodeAudioData") 
+                    ? "Error decoding audio. The browser's recorded format might be unsupported for merging."
+                    : `Error combining recording: ${error.message}`;
+
+                showMessage(errorMsg, "red");
+            } finally {
+                updateUI(); // Reset UI state and re-enable buttons
+            }
+        }
+
+        // --- Event Listeners and Initialization ---
+
+        mainActionBtn.addEventListener('click', () => {
+            if (currentState === 'IDLE' || currentState === 'PAUSED') {
+                startRecording();
+            } else if (currentState === 'RECORDING') {
+                pauseRecording();
+            }
+        });
+
+        redoBtn.addEventListener('click', redoLastStep);
+        finishBtn.addEventListener('click', finishRecording);
+
+        // Initial UI setup
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUI();
+            showMessage("Click 'START RECORDING' to begin.", "gray");
+        });
+        
+    </script>
+</body>
+</html>
