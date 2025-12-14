@@ -6,11 +6,30 @@
   <title>Peer Client</title>
   <script src="../scripts/reqs.js"></script>
   <style>
-    body { font-family: sans-serif; }
-    #files { border: 1px solid #ccc; padding: 8px; max-width: 400px; }
-    .file { display: flex; justify-content: space-between; padding: 4px; cursor: pointer; }
-    .file:hover { background: #eee; }
-    small { color: #666; }
+    body {
+      font-family: sans-serif;
+    }
+
+    #files {
+      border: 1px solid #ccc;
+      padding: 8px;
+      max-width: 400px;
+    }
+
+    .file {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    .file:hover {
+      background: #eee;
+    }
+
+    small {
+      color: #666;
+    }
   </style>
 </head>
 
@@ -52,7 +71,6 @@
         bindConnection()
       })
     }
-
     function bindConnection() {
       conn.on('open', () => {
         status('connected')
@@ -86,9 +104,11 @@
           if (!approved) return
 
           if (msg.t === 'files') renderFiles(msg.p)
+
           if (msg.t === 'file:start') {
-            incomingFiles[msg.p.id] = { meta: msg.p, chunks: [] }
+            incomingFiles[msg.p.id] = { meta: msg.p, chunks: [], received: 0 }
           }
+
           if (msg.t === 'file:end') {
             const fileData = incomingFiles[msg.p]
             if (fileData) {
@@ -97,8 +117,13 @@
               delete incomingFiles[msg.p]
             }
           }
+
+          if (msg.t === 'file:fail') {
+            toast("failed")
+            const fileData = incomingFiles[msg.p]
+            if (fileData) delete incomingFiles[msg.p]
+          }
         } else {
-          // binary data
           const u8 = new Uint8Array(data)
           const sep = u8.indexOf(0)
           if (sep === -1) return
@@ -106,10 +131,20 @@
           const payload = u8.slice(sep + 1).buffer
 
           if (type === 'file') {
-            // append to last active file
             const activeFile = Object.values(incomingFiles).find(f => f.meta && f.chunks !== undefined)
-            if (activeFile) activeFile.chunks.push(payload)
+            if (activeFile) {
+              activeFile.chunks.push(payload)
+              activeFile.received += payload.byteLength
+
+              if (conn.open) {
+                conn.send(JSON.stringify({
+                  t: 'file:ack',
+                  p: { id: activeFile.meta.id, offset: activeFile.received }
+                }))
+              }
+            }
           }
+
         }
       })
 
@@ -146,8 +181,10 @@
       log(`Downloaded ${name}`)
     }
 
+
     connect()
   </script>
 
 </body>
+
 </html>

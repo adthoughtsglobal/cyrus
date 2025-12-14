@@ -423,3 +423,16 @@ input[type="checkbox"] {
     transform: scale(1.5);
     margin: 1em;
 }
+
+.progressCont {
+    width: 100%;
+    height: 1em;
+    background: var(--cl4);
+    border-radius: 1em;
+
+    &>.progressBar {
+        height: 100%;
+        background-image: linear-gradient(90deg, #e4e42e, #5abe57);
+        border-radius: 1em;
+    }
+}

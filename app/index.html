@@ -105,6 +105,12 @@
                     </div>
                 </div>
                 <div class="pane">
+                    <div class="white pane" id="progressPane">
+                        <div class="label" id="progressLabel"></div>
+                        <div class="progressCont">
+                            <div class="progressBar"></div>
+                        </div>
+                    </div>
                     <div class="white pane large">
                         <div class="label">Stats</div>
                         <h1 id="connected_number">0</h1>
@@ -148,24 +154,27 @@
                     </div>
                 </div>
             </div>
-            
-                    <div class="white pane" id="confirmElement">
-                        <span>Allow this to do that?</span>
-                        <div class="btngrp">
-                            <div class="btn" style="background-color: #4cae56;">
-                                <div class="icn">check</div>
-                                <div class="title">Allow</div>
-                            </div>
-                            <div class="btn red" style="background-color: #6e2f2f;">
-                                <div class="icn">close</div>
-                                <div class="title">Cancel</div>
-                            </div>
-                        </div>
+
+            <div class="white pane" id="confirmElement">
+                <span>Allow this to do that?</span>
+                <div class="btngrp">
+                    <div class="btn" style="background-color: #4cae56;">
+                        <div class="icn">check</div>
+                        <div class="title">Allow</div>
                     </div>
+                    <div class="btn red" style="background-color: #6e2f2f;">
+                        <div class="icn">close</div>
+                        <div class="title">Cancel</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="toast-container" style="position: fixed; bottom: 3em; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 0.5em; pointer-events: none;"></div>
+    <div id="toast-container"
+        style="position: fixed; bottom: 3em; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 0.5em; pointer-events: none;">
+    </div>
 
+    <script src="appScripts/utility.js" defer></script>
     <script src="script.js" defer></script>
     <script src="appScripts/sharing.js" defer></script>
 </body>

@@ -75,7 +75,6 @@ if (!peerId) {
     peerId = crypto.randomUUID()
     localStorage.setItem(STORAGE_KEY, peerId)
 }
-
 const peer = new Peer(peerId);
 let host;
 
@@ -95,6 +94,11 @@ peer.on('open', id => {
                         from: clientId,
                         text: data
                     })
+                }
+
+                if (type === 'file:ack') {
+                    const ackEvent = new CustomEvent('file:ack', { detail: { t: 'file:ack', p: data } })
+                    window.dispatchEvent(ackEvent)
                 }
             }
 
@@ -119,6 +123,7 @@ peer.on('open', id => {
     window.host = host
     renderClientsList()
 })
+
 
 window.sendToClient = (clientId, text) => {
     host.sendJSON(clientId, 'chat', text)

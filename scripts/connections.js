@@ -34,13 +34,13 @@ class PeerHost {
   }
 
   async #onIncoming(conn) {
-    const { clientId, nick } = conn.metadata || {}
+    const { clientId } = conn.metadata || {}
     if (!clientId) return conn.close()
 
     // bind immediately so client gets responses
     const client = {
       clientId,
-      nick: nick || this.#randomNick(),
+      nick: this.#randomNick(),
       connected_timestamp: Date.now(),
       conn,
       metadata: conn.metadata,
@@ -52,7 +52,7 @@ class PeerHost {
     // tell client it’s pending
     conn.send(JSON.stringify({ t: 'status', p: 'pending' }))
 
-    if (!await justConfirm(`Approve client ${nick || clientId}?`)) {
+    if (!await justConfirm(`Approve client ${clientId}?`)) {
       conn.send(JSON.stringify({ t: 'status', p: 'rejected' }))
       conn.close()
       return
@@ -66,7 +66,7 @@ class PeerHost {
 
   #bind(conn, client) {
     conn.on('data', data => {
-      console.log("data recieved")
+      console.log("data recieved", data)
       if (typeof data === 'string') {
         const msg = JSON.parse(data)
         this.handler('json', {
