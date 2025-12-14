@@ -7,59 +7,74 @@
 </head>
 <body>
 
-<div id="qr-reader" style="width:300px"></div>
+  <div id="qr-reader" style="width:300px"></div>
 
-<input id="manual" placeholder="Paste QR payload JSON">
-<button id="join">Join</button>
+  <input id="manual" placeholder="Paste QR payload JSON">
+  <button id="join">Join</button>
 
-<div id="status">idle</div>
+  <div id="status">idle</div>
 
-<script>
-const status = s => document.getElementById('status').textContent = s
+  <script>
+    const status = s => document.getElementById('status').textContent = s
 
-let peer
-let conn
-let hostId = null;
+    let peer
+    let conn
+    let hostId = localStorage.getItem('hostPeerId')
 
-function connect(id) {
-  peer = new Peer()
-  peer.on('open', () => {
-    conn = peer.connect(id)
-    bind()
-  })
-}
+    function connect() {
+      peer = new Peer()
 
-function bind() {
-  conn.on('open', () => status('connected'))
-  conn.on('close', () => status('disconnected'))
-  conn.on('error', () => status('error'))
-}
+      peer.on('open', () => {
+        const CLIENT_KEY = 'client_id'
+        let clientId = localStorage.getItem(CLIENT_KEY)
 
-function handlePayload(text) {
-  const payload = JSON.parse(text)
-  hostId = payload.peerId
-  localStorage.setItem('hostPeerId', hostId)
-  connect(hostId)
-}
+        if (!clientId) {
+          clientId = crypto.randomUUID()
+          localStorage.setItem(CLIENT_KEY, clientId)
+        }
 
-if (hostId) {
-  connect(hostId)
-} else {
-//   const qr = new Html5Qrcode("qr-reader")
-//   qr.start(
-//     { facingMode: "environment" },
-//     { fps: 10, qrbox: 250 },
-//     text => {
-//       qr.stop()
-//       handlePayload(text)
-//     }
-//   )
+        conn = peer.connect(hostId, {
+          metadata: {
+            clientId,
+            nick: 'd'
+          }
+        })
 
-  document.getElementById('join').onclick = () => {
-    handlePayload(document.getElementById('manual').value)
-  }
-}
-</script>
+        bind()
+      })
+    }
+
+    function bind() {
+      conn.on('open', () => status('connected'))
+      conn.on('close', () => status('disconnected'))
+      conn.on('error', () => status('error'))
+    }
+
+    function handlePayload(text) {
+      const payload = JSON.parse(text)
+      hostId = payload.peerId
+      localStorage.setItem('hostPeerId', hostId)
+      connect()
+    }
+
+    if (hostId) {
+      connect()
+    } else {
+      const qr = new Html5Qrcode("qr-reader")
+      qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        text => {
+          qr.stop()
+          handlePayload(text)
+        }
+      )
+
+      document.getElementById('join').onclick = () => {
+        handlePayload(document.getElementById('manual').value)
+      }
+    }
+  </script>
 
 </body>
 </html>

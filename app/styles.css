@@ -272,15 +272,18 @@ table {
     }
 }
 
-.white.pane.actions,
-.white.pane.horiz {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+.white.pane.thin {
     padding: .5em;
+}
+
+.white.pane {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    padding: 1em;
 
     &.white.pane.horiz {
-        padding: 1em;
+        flex-direction: row;
     }
 
     &>.btn {
@@ -367,4 +370,31 @@ table {
 
 .rotatediag {
     transform: rotate(45deg);
+}
+
+#confirmElement{display:none;}
+#confirmElement.show{display:flex}
+
+.btngrp {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    gap: .3em;
+
+    &>.btn {
+        padding: .5em .7em;
+        display: flex;
+        flex: 1;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        flex-direction: row;
+        border-radius: .5em;
+        color: white;
+
+        &>.icn {
+            font-size: 1.2em;
+        }
+    }
 }

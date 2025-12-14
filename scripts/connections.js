@@ -3,7 +3,7 @@ class PeerHost {
     this.peer = peer
     this.clients = []
     this.token = crypto.randomUUID()
-    this.handler = opts.handler || (()=>{})
+    this.handler = opts.handler || (() => {})
     this.reconnectAttempts = new Map()
 
     peer.on('connection', c => this.#onIncoming(c))
@@ -14,75 +14,61 @@ class PeerHost {
     return JSON.stringify({ peerId: this.peer.id, token: this.token })
   }
 
-  kickbyid(id) {
-    const i = this.clients.findIndex(c => c.id === id)
+  kickbyid(clientId) {
+    const i = this.clients.findIndex(c => c.clientId === clientId)
     if (i === -1) return
-    const c = this.clients[i]
-    c.conn?.close()
+    this.clients[i].conn?.close()
     this.clients.splice(i, 1)
-    this.handler('kicked', { id })
-    this.handler('disconnect', { id })
+    this.handler('disconnect', { clientId })
   }
 
-  async reconnectbyid(id, timeout = 5000) {
-    const c = this.clients.find(x => x.id === id)
-    if (!c) return false
-
-    const tries = (this.reconnectAttempts.get(id) || 0) + 1
-    if (tries > 1) {
-      this.#remove(id)
-      return false
-    }
-    this.reconnectAttempts.set(id, tries)
-
-    try {
-      const conn = await this.#connectAsync(id, timeout)
-      this.#bind(conn, c)
-      c.conn = conn
-      this.handler('reconnect', { id })
-      return true
-    } catch (e) {
-      this.#remove(id)
-      this.handler('error', { id, error: e })
-      return false
-    }
-  }
-
-  changenick(id, nick) {
-    const c = this.clients.find(x => x.id === id)
+  changenick(clientId, nick) {
+    const c = this.clients.find(x => x.clientId === clientId)
     if (!c) return
     c.nick = nick
-    this.handler('nickchange', { id, nick })
+    this.handler('nickchange', { clientId, nick })
   }
 
-  #onIncoming(conn) {
-    if (this.clients.some(c => c.id === conn.peer)) {
+  async #onIncoming(conn) {
+    const { clientId, nick } = conn.metadata || {}
+    if (!clientId) {
       conn.close()
       return
     }
 
-    if (!confirm(`Approve client ${conn.peer}?`)) {
+    let client = this.clients.find(c => c.clientId === clientId)
+
+    if (client) {
+      client.conn?.close()
+      client.conn = conn
+      client.connected_timestamp = Date.now()
+      this.#bind(conn, client)
+      this.handler('reconnect', { clientId })
+      return
+    }
+
+    if (!await confirm(`Approve client ${nick || clientId}?`)) {
       conn.close()
       return
     }
 
-    const client = {
-      id: conn.peer,
-      nick: this.#randomNick(),
+    client = {
+      clientId,
+      nick: nick || this.#randomNick(),
       connected_timestamp: Date.now(),
       conn,
-      metadata: {}
+      metadata: conn.metadata
     }
 
     this.clients.push(client)
     this.#bind(conn, client)
-    this.handler('connect', client)
+    this.handler('connect', { clientId })
   }
 
   #bind(conn, client) {
     conn.on('data', data => {
       this.handler('data', {
-        id: client.id,
+        clientId: client.clientId,
         data,
         timestamp: Date.now(),
         metadata: client.metadata
@@ -90,47 +76,19 @@ class PeerHost {
     })
 
     conn.on('close', () => {
-      this.#remove(client.id)
+      this.#remove(client.clientId)
     })
 
     conn.on('error', e => {
-      this.handler('error', { id: client.id, error: e })
+      this.handler('error', { clientId: client.clientId, error: e })
     })
   }
 
-  #remove(id) {
-    const i = this.clients.findIndex(c => c.id === id)
+  #remove(clientId) {
+    const i = this.clients.findIndex(c => c.clientId === clientId)
     if (i === -1) return
     this.clients.splice(i, 1)
-    this.handler('disconnect', { id })
-  }
-
-  #connectAsync(id, timeout) {
-    return new Promise((resolve, reject) => {
-      const conn = this.peer.connect(id)
-      let done = false
-
-      const t = setTimeout(() => {
-        if (done) return
-        done = true
-        conn.close()
-        reject(new Error('connect timeout'))
-      }, timeout)
-
-      conn.on('open', () => {
-        if (done) return
-        done = true
-        clearTimeout(t)
-        resolve(conn)
-      })
-
-      conn.on('error', e => {
-        if (done) return
-        done = true
-        clearTimeout(t)
-        reject(e)
-      })
-    })
+    this.handler('disconnect', { clientId })
   }
 
   #randomNick() {
@@ -138,6 +96,6 @@ class PeerHost {
       'Fox','Wolf','Raven','Hawk','Bear',
       'Lynx','Otter','Crow','Tiger','Viper'
     ]
-    return pool[Math.floor(Math.random()*pool.length)]
+    return pool[Math.floor(Math.random() * pool.length)]
   }
 }

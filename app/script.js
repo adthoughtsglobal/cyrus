@@ -33,69 +33,75 @@ function assignToolTips() {
     })
     document.body.appendChild(tooltip)
 
+    let activeEl = null
+
     document.addEventListener("mouseover", e => {
         const el = e.target.closest("[tooltip]")
         if (!el) return
+        activeEl = el
         tooltip.textContent = el.getAttribute("tooltip")
         tooltip.style.opacity = "1"
     })
 
     document.addEventListener("mousemove", e => {
-        if (tooltip.style.opacity === "0") return
+        if (!activeEl) return
+        if (!activeEl.isConnected) {
+            activeEl = null
+            tooltip.style.opacity = "0"
+            return
+        }
         tooltip.style.left = e.clientX + 10 + "px"
         tooltip.style.top = e.clientY + 10 + "px"
     })
 
     document.addEventListener("mouseout", e => {
-        if (e.target.closest("[tooltip]")) {
+        if (activeEl && e.target.closest("[tooltip]") === activeEl) {
+            activeEl = null
             tooltip.style.opacity = "0"
         }
     })
 }
+
 
 setTimeout(() => {
     moveHL(document.querySelector(".btn.active"));
     assignToolTips();
 }, 500);
 
-const peer = new Peer()
+const STORAGE_KEY = 'peer_id'
+
+let peerId = localStorage.getItem(STORAGE_KEY)
+if (!peerId) {
+    peerId = crypto.randomUUID()
+    localStorage.setItem(STORAGE_KEY, peerId)
+}
+
+const peer = new Peer(peerId)
 
 peer.on('open', id => {
     const host = new PeerHost(peer, {
         handler: (event, payload) => {
-            if (event === 'connect') {
-                console.log('connected', payload)
-                renderClientsList();
-            }
-            if (event === 'disconnect') {
-                console.log('disconnected', payload.id)
-                renderClientsList();
-            }
-            if (event === 'data') {
-                console.log(payload.id, payload.data)
-            }
-            if (event === 'error') {
-                console.error(payload)
-            }
-            if (event === "nickchange") {
-                renderClientsList();
-            }
+            if (event === 'connect') renderClientsList()
+            if (event === 'disconnect') renderClientsList()
+            if (event === 'data') console.log(payload.id, payload.data)
+            if (event === 'error') console.error(payload)
+            if (event === 'nickchange') renderClientsList()
         }
     })
 
-    let qrCodeElement = document.getElementById("qrScannable")
     const payload = host.getQRPayload()
+    document.getElementById("manual_token_input").value = payload
 
-    document.getElementById("manual_token_input").value = payload;
-    new QRCode(qrCodeElement, {
+    new QRCode(document.getElementById("qrScannable"), {
         text: payload,
         width: 128,
         height: 128
     })
-    window.host = host;
-    renderClientsList();
 
+    window.host = host
+    renderClientsList()
 })
+
 
 let addicn = document.getElementById("new_cl_addbtn");
 let addbtnitself = document.getElementById("new_cl_btn");
@@ -108,6 +114,8 @@ addbtnitself.addEventListener("click", () => {
 const tbody = document.querySelector('#connections_table')
 let tbodyheaders = tbody.innerHTML;
 function renderClientsList() {
+
+    document.getElementById("connected_number").innerText = host.clients.length;
     if (window.host.clients.length < 1) {
         tbody.innerHTML = 'No Clients';
         newClInstrPan.classList.remove("visibility")
@@ -118,7 +126,7 @@ function renderClientsList() {
         const tr = document.createElement('tr')
 
         const tdId = document.createElement('td')
-        tdId.textContent = c.id
+        tdId.textContent = c.clientId
 
         const tdNick = document.createElement('td')
         tdNick.textContent = c.nick
@@ -134,15 +142,15 @@ function renderClientsList() {
         kick.className = 'icn btn'
         kick.setAttribute('tooltip', 'Kick')
         kick.textContent = 'sports_martial_arts'
-        kick.onclick = () => host.kickbyid(c.id)
+        kick.onclick = () => host.kickbyid(c.clientId)
 
         const reconnect = document.createElement('div')
         reconnect.className = 'icn btn'
         reconnect.setAttribute('tooltip', 'Reconnect')
         reconnect.textContent = 'refresh'
         reconnect.onclick = () => {
-        reconnect.textContent = 'rotate_right'
-            host.reconnectbyid(c.id).then(renderClientsList())
+            reconnect.textContent = 'rotate_right'
+            host.reconnectbyid(c.clientId).then(renderClientsList())
         }
 
         const nick = document.createElement('div')
@@ -151,7 +159,7 @@ function renderClientsList() {
         nick.textContent = 'badge'
         nick.onclick = () => {
             const n = prompt('New nick')
-            if (n) host.changenick(c.id, n)
+            if (n) host.changenick(c.clientId, n)
         }
 
         grp.append(kick, reconnect, nick)
@@ -161,3 +169,19 @@ function renderClientsList() {
         tbody.appendChild(tr)
     });
 }
+
+const confirmPane = document.getElementById("confirmElement")
+const allowBtn = confirmPane.querySelector(".btn:not(.red)")
+const cancelBtn = confirmPane.querySelector(".btn.red")
+
+window.confirm = msg => new Promise(r => {
+    confirmPane.querySelector("span").textContent = msg
+    confirmPane.classList.add("show")
+    const done = v => {
+        confirmPane.classList.remove("show")
+        allowBtn.onclick = cancelBtn.onclick = null
+        r(v)
+    }
+    allowBtn.onclick = () => done(true)
+    cancelBtn.onclick = () => done(false)
+})

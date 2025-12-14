@@ -31,13 +31,21 @@
                     <div class="icn">network_node</div>
                     <div class="title">Hub</div>
                 </div>
+                <div class="btn" clickTgt="lists">
+                    <div class="icn">shield_lock</div>
+                    <div class="title">Lists</div>
+                </div>
+                <div class="btn" clickTgt="lists">
+                    <div class="icn">settings</div>
+                    <div class="title">Settings</div>
+                </div>
             </div>
 
         </div>
         <div class="pages">
             <div class="page active" id="connections">
                 <div class="pane large">
-                    <div class="white pane actions">
+                    <div class="white pane horiz thin">
                         <div class="btn">
                             <div class="icn">sports_martial_arts</div>
                             <div class="title">Kick all</div>
@@ -59,7 +67,7 @@
                             <div class="inpgrp" id="token_grp">
                                 <input type="text" placeholder="loading..." disabled id="manual_token_input"
                                     value="ABC123">
-                                <button class="icn btn" type="button">content_copy</button>
+                                <button tooltip="copy" class="icn btn" type="button">content_copy</button>
                             </div>
 
                             <script>
@@ -91,14 +99,29 @@
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
-                            
+
                         </table>
                     </div>
                 </div>
-                <div class="white pane">
-                    <div class="label">Stats</div>
-                    <h1 id="connected_number">0</h1>
-                    <s1 class="subheading">Clients connected</s1>
+                <div class="pane">
+                    <div class="white pane" id="confirmElement">
+                        <span>Allow this to do that?</span>
+                        <div class="btngrp">
+                            <div class="btn" style="background-color: #4cae56;">
+                                <div class="icn">check</div>
+                                <div class="title">Allow</div>
+                            </div>
+                            <div class="btn red" style="background-color: #6e2f2f;">
+                                <div class="icn">close</div>
+                                <div class="title">Cancel</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="white pane large">
+                        <div class="label">Stats</div>
+                        <h1 id="connected_number">0</h1>
+                        <s1 class="subheading">Clients connected</s1>
+                    </div>
                 </div>
             </div>
             <div class="page" id="files">
