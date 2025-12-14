@@ -372,8 +372,19 @@ table {
     transform: rotate(45deg);
 }
 
-#confirmElement{display:none;}
-#confirmElement.show{display:flex}
+#confirmElement {
+    display: none;
+    position: absolute;
+    bottom: 2em;
+    right: 1em;
+    z-index: 99;
+    max-width: 300px;
+    box-shadow: 0 5px 10px #00000066;
+}
+
+#confirmElement.show {
+    display: flex
+}
 
 .btngrp {
     display: flex;

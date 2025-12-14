@@ -170,18 +170,144 @@ function renderClientsList() {
     });
 }
 
-const confirmPane = document.getElementById("confirmElement")
-const allowBtn = confirmPane.querySelector(".btn:not(.red)")
-const cancelBtn = confirmPane.querySelector(".btn.red")
+const justConfirmPane = document.getElementById("confirmElement")
+const allowBtn = justConfirmPane.querySelector(".btn:not(.red)")
+const cancelBtn = justConfirmPane.querySelector(".btn.red")
 
-window.confirm = msg => new Promise(r => {
-    confirmPane.querySelector("span").textContent = msg
-    confirmPane.classList.add("show")
+window.justConfirm = msg => new Promise(r => {
+    justConfirmPane.querySelector("span").textContent = msg
+    justConfirmPane.classList.add("show")
     const done = v => {
-        confirmPane.classList.remove("show")
+        justConfirmPane.classList.remove("show")
         allowBtn.onclick = cancelBtn.onclick = null
         r(v)
     }
     allowBtn.onclick = () => done(true)
     cancelBtn.onclick = () => done(false)
 })
+
+const filesTable = document.querySelector('#files_table')
+const filesTableHeader = filesTable.innerHTML
+
+function formatBytes(b) {
+    if (b === 0) return '0 B'
+    const k = 1024
+    const s = ['B', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(b) / Math.log(k))
+    return (b / Math.pow(k, i)).toFixed(2) + ' ' + s[i]
+}
+
+async function openIdb() {
+    return new Promise((res, rej) => {
+        const r = indexedDB.open('file_store', 1)
+        r.onupgradeneeded = e => {
+            const db = e.target.result
+            if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta')
+            if (!db.objectStoreNames.contains('contents')) db.createObjectStore('contents')
+        }
+        r.onsuccess = () => res(r.result)
+        r.onerror = () => rej(r.error)
+    })
+}
+
+async function saveFileContent(id, blob) {
+    const idb = await openIdb()
+    return new Promise((res, rej) => {
+        const tx = idb.transaction('contents', 'readwrite')
+        const req = tx.objectStore('contents').put(blob, id)
+        req.onsuccess = () => res()
+        req.onerror = () => rej(req.error)
+    })
+}
+
+async function getFileContent(id) {
+    const idb = await openIdb()
+    return new Promise((res, rej) => {
+        const tx = idb.transaction('contents', 'readonly')
+        const req = tx.objectStore('contents').get(id)
+        req.onsuccess = () => res(req.result || null)
+        req.onerror = () => rej(req.error)
+    })
+}
+
+
+async function loadMetadata() {
+    const idb = await openIdb()
+    return new Promise(res => {
+        const tx = idb.transaction('meta', 'readonly')
+        const req = tx.objectStore('meta').get('files_meta')
+        req.onsuccess = () => res(req.result || [])
+    })
+}
+
+async function saveMetadata(meta) {
+    const idb = await openIdb()
+    const tx = idb.transaction('meta', 'readwrite')
+    tx.objectStore('meta').put(meta, 'files_meta')
+}
+
+async function renderFilesList() {
+    async function updateTotalMemory() {
+        const meta = await loadMetadata()
+        const total = meta.reduce((sum, f) => sum + f.size, 0)
+        document.getElementById('total_mem_used').textContent = formatBytes(total)
+    }
+
+    updateTotalMemory()
+    const meta = await loadMetadata()
+    filesTable.innerHTML = filesTableHeader
+
+    if (!meta.length) {
+        filesTable.innerHTML += '<tr><td colspan="5">No Files</td></tr>'
+        return
+    }
+
+    meta.forEach(f => {
+        const tr = document.createElement('tr')
+
+        const tdSelect = document.createElement('td')
+        const chk = document.createElement('input')
+        chk.type = 'checkbox'
+        chk.value = f.id
+        tdSelect.appendChild(chk)
+
+        const tdName = document.createElement('td')
+        tdName.textContent = f.name
+
+        const tdModified = document.createElement('td')
+        tdModified.textContent = new Date(f.modified).toLocaleString()
+
+        const tdSize = document.createElement('td')
+        tdSize.textContent = formatBytes(f.size)
+
+        const tdId = document.createElement('td')
+        tdId.textContent = f.id
+
+        tr.append(tdSelect, tdName, tdModified, tdSize, tdId)
+        filesTable.appendChild(tr)
+    })
+}
+async function handleFileInput(files) {
+    const meta = await loadMetadata()
+    let nextId = meta.length ? Math.max(...meta.map(f => f.id)) + 1 : 1
+
+    for (const f of files) {
+        const id = nextId++
+        meta.push({ id, name: f.name, modified: f.lastModified, size: f.size })
+        await saveFileContent(id, f)
+    }
+
+    await saveMetadata(meta)
+    renderFilesList()
+}
+
+
+document.getElementById('new_fl_btn').onclick = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.multiple = true
+    input.onchange = () => handleFileInput(input.files)
+    input.click()
+}
+
+renderFilesList()

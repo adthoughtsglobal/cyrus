@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
     <script src="../scripts/reqs.js"></script>
     <script src="../scripts/connections.js"></script>
+    <script src="../scripts/sql-wasm.js"></script>
 </head>
 
 <body>
@@ -104,6 +105,47 @@
                     </div>
                 </div>
                 <div class="pane">
+                    <div class="white pane large">
+                        <div class="label">Stats</div>
+                        <h1 id="connected_number">0</h1>
+                        <s1 class="subheading">Clients connected</s1>
+                    </div>
+                </div>
+            </div>
+            <div class="page" id="files">
+                <div class="pane large">
+                    <div class="white pane horiz thin">
+                        <div class="btn">
+                            <div class="icn">refresh</div>
+                            <div class="title">Refresh</div>
+                        </div>
+                        <div class="seperator"></div>
+                        <div class="btn worth" id="new_fl_btn">
+                            <div class="icn" id="new_fl_addbtn">add</div>
+                            <div class="title">Upload file</div>
+                        </div>
+                    </div>
+                    <div class="large white pane">
+                        <table id="files_table">
+                            <tr>
+                                <th>Select</th>
+                                <th>File Name</th>
+                                <th>Modified</th>
+                                <th>Size</th>
+                                <th>ID</th>
+                            </tr>
+
+                        </table>
+                    </div>
+                </div>
+                <div class="pane">
+                    <div class="white pane large">
+                        <div class="label">Total Memory Used:</div>
+                        <h1 id="total_mem_used">100GB</h1>
+                    </div>
+                </div>
+            </div>
+            
                     <div class="white pane" id="confirmElement">
                         <span>Allow this to do that?</span>
                         <div class="btngrp">
@@ -117,26 +159,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="white pane large">
-                        <div class="label">Stats</div>
-                        <h1 id="connected_number">0</h1>
-                        <s1 class="subheading">Clients connected</s1>
-                    </div>
-                </div>
-            </div>
-            <div class="page" id="files">
-                <table id="connections_table">
-                    <tr>
-                        <th>File Name</th>
-                        <th>Modified</th>
-                        <th>Size</th>
-                        <th>Storage</th>
-                        <th>Actions</th>
-                    </tr>
-                </table>
-            </div>
         </div>
     </div>
+    
     <script src="script.js"></script>
 </body>
 
