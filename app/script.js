@@ -259,12 +259,49 @@ async function deleteFile(ids) {
     toast(ids.length + " files deleted");
     renderFilesList();
 }
+async function downloadFiles(ids) {
+    const idb = await openIdb();
+    const meta = await loadMetadata();
+    const canStreamToDisk = 'showSaveFilePicker' in window;
+
+    for (const id of ids) {
+        const blob = await new Promise((res, rej) => {
+            const tx = idb.transaction('contents', 'readonly');
+            const req = tx.objectStore('contents').get(id);
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        });
+        if (!blob) continue;
+
+        const m = meta.find(f => f.id === id);
+        const name = m?.name || 'file';
+
+        if (canStreamToDisk) {
+            const handle = await showSaveFilePicker({ suggestedName: name });
+            const writable = await handle.createWritable();
+            await blob.stream().pipeTo(writable);
+        } else {
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            URL.revokeObjectURL(url);
+            a.remove();
+        }
+    }
+
+    toast("Files downloaded");
+}
+
 function renderActionButtons(selectedIds) {
     const container = document.getElementById('fileActionBtns');
     container.innerHTML = '';
     if (!selectedIds.length) return;
 
     const actions = [
+        { name: 'Download', icon: 'download', onClick: () => downloadFiles(selectedIds) },
         { name: 'Delete', icon: 'delete', onClick: () => deleteFile(selectedIds) },
         { name: 'Rename', icon: 'edit', onClick: () => enableInlineRename(selectedIds) }
     ];
@@ -277,6 +314,7 @@ function renderActionButtons(selectedIds) {
         container.appendChild(btn);
     });
 }
+
 
 function enableInlineRename(selectedIds) {
     const renameNext = async index => {
