@@ -196,109 +196,192 @@ function formatBytes(b) {
     const i = Math.floor(Math.log(b) / Math.log(k))
     return (b / Math.pow(k, i)).toFixed(2) + ' ' + s[i]
 }
+function generateId() {
+    return crypto.getRandomValues(new Uint32Array(4)).join('-');
+}
 
 async function openIdb() {
     return new Promise((res, rej) => {
-        const r = indexedDB.open('file_store', 1)
+        const r = indexedDB.open('file_store', 1);
         r.onupgradeneeded = e => {
-            const db = e.target.result
-            if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta')
-            if (!db.objectStoreNames.contains('contents')) db.createObjectStore('contents')
-        }
-        r.onsuccess = () => res(r.result)
-        r.onerror = () => rej(r.error)
-    })
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+            if (!db.objectStoreNames.contains('contents')) db.createObjectStore('contents');
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+    });
 }
 
 async function saveFileContent(id, blob) {
-    const idb = await openIdb()
+    const idb = await openIdb();
     return new Promise((res, rej) => {
-        const tx = idb.transaction('contents', 'readwrite')
-        const req = tx.objectStore('contents').put(blob, id)
-        req.onsuccess = () => res()
-        req.onerror = () => rej(req.error)
-    })
+        const tx = idb.transaction('contents', 'readwrite');
+        const req = tx.objectStore('contents').put(blob, id);
+        req.onsuccess = () => res();
+        req.onerror = () => rej(req.error);
+    });
 }
 
 async function getFileContent(id) {
-    const idb = await openIdb()
+    const idb = await openIdb();
     return new Promise((res, rej) => {
-        const tx = idb.transaction('contents', 'readonly')
-        const req = tx.objectStore('contents').get(id)
-        req.onsuccess = () => res(req.result || null)
-        req.onerror = () => rej(req.error)
-    })
+        const tx = idb.transaction('contents', 'readonly');
+        const req = tx.objectStore('contents').get(id);
+        req.onsuccess = () => res(req.result || null);
+        req.onerror = () => rej(req.error);
+    });
 }
 
-
 async function loadMetadata() {
-    const idb = await openIdb()
+    const idb = await openIdb();
     return new Promise(res => {
-        const tx = idb.transaction('meta', 'readonly')
-        const req = tx.objectStore('meta').get('files_meta')
-        req.onsuccess = () => res(req.result || [])
-    })
+        const tx = idb.transaction('meta', 'readonly');
+        const req = tx.objectStore('meta').get('files_meta');
+        req.onsuccess = () => res(req.result || []);
+    });
 }
 
 async function saveMetadata(meta) {
-    const idb = await openIdb()
-    const tx = idb.transaction('meta', 'readwrite')
-    tx.objectStore('meta').put(meta, 'files_meta')
+    const idb = await openIdb();
+    const tx = idb.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put(meta, 'files_meta');
 }
 
+async function deleteFile(ids) {
+    const meta = await loadMetadata();
+    const remaining = meta.filter(f => !ids.includes(f.id));
+    await saveMetadata(remaining);
+
+    const idb = await openIdb();
+    const tx = idb.transaction('contents', 'readwrite');
+    ids.forEach(id => tx.objectStore('contents').delete(id));
+    toast(ids.length + " files deleted");
+    renderFilesList();
+}
+function renderActionButtons(selectedIds) {
+    const container = document.getElementById('fileActionBtns');
+    container.innerHTML = '';
+    if (!selectedIds.length) return;
+
+    const actions = [
+        { name: 'Delete', icon: 'delete', onClick: () => deleteFile(selectedIds) },
+        { name: 'Rename', icon: 'edit', onClick: () => enableInlineRename(selectedIds) }
+    ];
+
+    actions.forEach(a => {
+        const btn = document.createElement('div');
+        btn.className = 'btn';
+        btn.innerHTML = `<div class="icn">${a.icon}</div><div class="title">${a.name}</div>`;
+        btn.onclick = a.onClick;
+        container.appendChild(btn);
+    });
+}
+
+function enableInlineRename(selectedIds) {
+    const renameNext = async index => {
+        if (index >= selectedIds.length) return;
+        const id = selectedIds[index];
+        const tr = Array.from(filesTable.querySelectorAll('tr')).find(row => {
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            return checkbox && checkbox.value == id;
+        });
+        if (!tr) return renameNext(index + 1);
+
+        const nameTd = tr.children[1];
+        nameTd.contentEditable = 'true';
+        nameTd.focus();
+
+        const onBlur = async () => {
+            const meta = await loadMetadata();
+            const fileMeta = meta.find(f => f.id == id);
+            if (fileMeta) {
+                fileMeta.name = nameTd.textContent.trim();
+                toast("File renamed");
+                await saveMetadata(meta);
+            }
+            nameTd.contentEditable = 'false';
+            renameNext(index + 1);
+        };
+
+        nameTd.addEventListener('blur', onBlur, { once: true });
+    };
+    renameNext(0);
+}
 async function renderFilesList() {
     async function updateTotalMemory() {
-        const meta = await loadMetadata()
-        const total = meta.reduce((sum, f) => sum + f.size, 0)
-        document.getElementById('total_mem_used').textContent = formatBytes(total)
+        const meta = await loadMetadata();
+        const total = meta.reduce((sum, f) => sum + f.size, 0);
+        document.getElementById('total_mem_used').textContent = formatBytes(total);
+    }
+    function getSelectedIds() {
+        return Array.from(filesTable.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
     }
 
-    updateTotalMemory()
-    const meta = await loadMetadata()
-    filesTable.innerHTML = filesTableHeader
+    updateTotalMemory();
+    const meta = await loadMetadata();
+    filesTable.innerHTML = filesTableHeader;
 
     if (!meta.length) {
-        filesTable.innerHTML += '<tr><td colspan="5">No Files</td></tr>'
-        return
+        filesTable.innerHTML += '<tr><td colspan="5">No Files</td></tr>';
+        return;
     }
 
     meta.forEach(f => {
-        const tr = document.createElement('tr')
+        const tr = document.createElement('tr');
 
-        const tdSelect = document.createElement('td')
-        const chk = document.createElement('input')
-        chk.type = 'checkbox'
-        chk.value = f.id
-        tdSelect.appendChild(chk)
+        const tdSelect = document.createElement('td');
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.value = f.id;
+        chk.addEventListener('change', () => renderActionButtons(getSelectedIds()));
+        tdSelect.appendChild(chk);
 
-        const tdName = document.createElement('td')
-        tdName.textContent = f.name
+        const tdName = document.createElement('td');
+        tdName.textContent = f.name;
 
-        const tdModified = document.createElement('td')
-        tdModified.textContent = new Date(f.modified).toLocaleString()
+        const tdModified = document.createElement('td');
+        tdModified.textContent = new Date(f.modified).toLocaleString();
 
-        const tdSize = document.createElement('td')
-        tdSize.textContent = formatBytes(f.size)
+        const tdSize = document.createElement('td');
+        tdSize.textContent = formatBytes(f.size);
 
-        const tdId = document.createElement('td')
-        tdId.textContent = f.id
+        const tdId = document.createElement('td');
+        tdId.textContent = f.id;
 
-        tr.append(tdSelect, tdName, tdModified, tdSize, tdId)
-        filesTable.appendChild(tr)
-    })
+        tr.append(tdSelect, tdName, tdModified, tdSize, tdId);
+        filesTable.appendChild(tr);
+    });
+     const selectAllCheckbox = document.getElementById('selectAll');
+
+    selectAllCheckbox.addEventListener('change', () => {
+        const allCheckboxes = filesTable.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+        allCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+        const selectedIds = Array.from(allCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        renderActionButtons(selectedIds);
+    });
+
+    filesTable.addEventListener('change', e => {
+        if (e.target.type === 'checkbox' && e.target.id !== 'selectAll') {
+            const allCheckboxes = filesTable.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+            selectAllCheckbox.checked = Array.from(allCheckboxes).every(cb => cb.checked);
+        }
+    });
 }
+
 async function handleFileInput(files) {
-    const meta = await loadMetadata()
-    let nextId = meta.length ? Math.max(...meta.map(f => f.id)) + 1 : 1
+    const meta = await loadMetadata();
 
     for (const f of files) {
-        const id = nextId++
-        meta.push({ id, name: f.name, modified: f.lastModified, size: f.size })
-        await saveFileContent(id, f)
+        const id = generateId();
+        meta.push({ id, name: f.name, modified: f.lastModified, size: f.size });
+        await saveFileContent(id, f);
     }
 
-    await saveMetadata(meta)
-    renderFilesList()
+    await saveMetadata(meta);
+    renderFilesList();
 }
 
 
@@ -311,3 +394,48 @@ document.getElementById('new_fl_btn').onclick = () => {
 }
 
 renderFilesList()
+
+const toastQueue = [];
+let showing = false;
+
+function toast(text) {
+    const container = document.getElementById('toast-container');
+    const toastDiv = document.createElement('div');
+    toastDiv.textContent = text;
+    toastDiv.style.cssText = `
+        background: #333; color: #fff; padding: 0.8em 1.2em; border-radius: 0.4em;
+        opacity: 0; transform: translateY(20px); transition: opacity 0.3s, transform 0.3s;
+        pointer-events: auto; cursor: pointer; position: relative;
+    `;
+    toastDiv.onclick = () => {
+        container.removeChild(toastDiv);
+        showNextToast();
+    };
+    toastQueue.push(toastDiv);
+    if (!showing) showNextToast();
+}
+
+function showNextToast() {
+    const container = document.getElementById('toast-container');
+    if (toastQueue.length === 0) {
+        showing = false;
+        return;
+    }
+    showing = true;
+    const toastDiv = toastQueue.shift();
+    container.appendChild(toastDiv);
+
+    const offset = container.children.length - 1;
+    toastDiv.style.opacity = '1';
+    toastDiv.style.transform = 'translateY(0)';
+    toastDiv.style.zIndex = offset;
+
+    for (let i = 0; i < offset; i++) {
+        container.children[i].style.opacity = '0.6';
+    }
+
+    setTimeout(() => {
+        if (container.contains(toastDiv)) container.removeChild(toastDiv);
+        showNextToast();
+    }, 3000);
+}

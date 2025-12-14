@@ -15,7 +15,7 @@
     <div class="window">
         <div class="nav">
             <div class="main_logo">
-                <b>Cyrus</b> <span>Server Dashboard</span>
+                <img src="../assets/CYRUSpng.png" alt="Cyrus"> <span>Server Dashboard</span>
             </div>
             <div class="pages_nav">
                 <div class="nav_hl"></div>
@@ -119,6 +119,7 @@
                             <div class="icn">refresh</div>
                             <div class="title">Refresh</div>
                         </div>
+                        <div id="fileActionBtns" class="horiz"></div>
                         <div class="seperator"></div>
                         <div class="btn worth" id="new_fl_btn">
                             <div class="icn" id="new_fl_addbtn">add</div>
@@ -128,7 +129,9 @@
                     <div class="large white pane">
                         <table id="files_table">
                             <tr>
-                                <th>Select</th>
+                                <th>
+                                    <input type="checkbox" id="selectAll" tooltip="Select All">
+                                </th>
                                 <th>File Name</th>
                                 <th>Modified</th>
                                 <th>Size</th>
@@ -161,7 +164,8 @@
                     </div>
         </div>
     </div>
-    
+    <div id="toast-container" style="position: fixed; bottom: 3em; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 0.5em; pointer-events: none;"></div>
+
     <script src="script.js"></script>
 </body>
 
