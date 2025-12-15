@@ -75,7 +75,7 @@ if (!peerId) {
     peerId = crypto.randomUUID()
     localStorage.setItem(STORAGE_KEY, peerId)
 }
-const peer = new Peer(peerId);
+startPeer(peerId);
 let host;
 
 peer.on('open', id => {
