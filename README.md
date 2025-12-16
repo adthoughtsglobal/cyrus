@@ -25,8 +25,7 @@ peerjs --port 9000 --key peerjs
 You have to keep it running.
 ## Host the dashboard
 If you have already hosted the signaling server, hosting a dashboard is one step away. If you haven't, you can use the version of the dashboard hosted at github pages.
-1. Host the dashboard
- ```sh
+u ```sh
 npx serve .
 ```
 1. Your dashboard would be running at **http://localhost:3000/app/**.
