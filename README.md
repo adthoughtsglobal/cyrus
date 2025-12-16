@@ -1,5 +1,8 @@
+<img width="1900" height="582" alt="image" src="https://github.com/user-attachments/assets/7b13cb14-6afc-4dc7-ad94-4b07e5309402" />
+
 # Cyrus
-BETA.
+BETA | Open-Source | Fully local
+
 Cyrus is a dashboard for locally hosting centralized storage and coordinating Peer-to-Peer data transfers.
 
 ## Prerequisites
