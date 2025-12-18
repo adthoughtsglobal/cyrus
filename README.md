@@ -33,3 +33,4 @@ If you have already hosted the signaling server, hosting a dashboard is one step
 npx serve .
 ```
 1. Your dashboard would be running at **http://localhost:3000/app/**.
+2. You can visit `/client` for the in-built client application, though, feel free to use the onofficial ones or make one yourselves!

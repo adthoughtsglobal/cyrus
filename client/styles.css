@@ -1,0 +1,442 @@
+:root {
+    --cl1: #384d48ff;
+    --cl2: #6e7271ff;
+    --cl3: #acad94ff;
+    --cl4: #d8d4d5ff;
+    --cl5: #e2e2e2ff;
+    --cl6: #f8f9fa;
+}
+
+@font-face {
+    font-family: 'Material Symbols Rounded';
+    font-style: normal;
+    src: url("../assets/icons.woff2") format('woff2');
+}
+
+.icn {
+    font-family: 'Material Symbols Rounded';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0;
+    transition: font-variation-settings, transform 0.3s ease;
+}
+
+.btn:hover .icn {
+    font-variation-settings: 'FILL' 1;
+    animation: jump 2s var(--time1);
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans';
+    font-style: normal;
+    font-weight: 100 700;
+    font-stretch: 100%;
+    font-display: swap;
+    src: url(../assets/IBMPlexSans.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+body {
+    font-family: "IBM Plex Sans", sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.main_logo {
+    padding: .5em;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    img {
+        width: 35px;
+        object-position: center;
+        height: 35px;
+        object-fit: cover;
+        object-view-box: inset(5%);
+        border-radius: .5em;
+        margin-right: 3px;
+
+    }
+}
+
+.nav_hl {
+    position: absolute;
+    inset: 0 auto auto 0;
+    background: var(--cl3);
+    border-radius: .5em;
+    transition: transform .3s ease, width .3s ease, height .3s ease;
+    z-index: 0;
+}
+
+.btn {
+    position: relative;
+    z-index: 1;
+}
+
+.window {
+    background-color: var(--cl5);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+
+    .nav {
+        background-color: var(--cl1);
+        color: var(--cl5);
+        font-size: 1.3em;
+        box-shadow: 0 0 10px #000000ab;
+        gap: .5em;
+        padding: 5px;
+
+        & .btn {
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+            padding: .5em .7em;
+            align-items: center;
+            border-radius: .5em;
+            font-size: .8em;
+            transition: background-color .3s;
+            user-select: none;
+            cursor: pointer;
+
+            &>.icn {
+                font-size: .9em;
+            }
+
+            &.active {
+                color: var(--cl1);
+
+                &>.icn {
+                    font-variation-settings: 'FILL' 1;
+                }
+
+                &:hover {
+                    color: var(--cl1);
+                    filter: brightness(120%);
+                }
+            }
+
+            &:hover {
+                background-color: #ffffff0e;
+                color: inherit;
+            }
+        }
+    }
+
+    &>* {
+        display: flex;
+    }
+}
+
+.pages_nav {
+    padding: 3px;
+    backdrop-filter: brightness(80%);
+    border-radius: .7em;
+    display: flex;
+    flex-direction: row;
+    gap: 3px;
+    position: relative;
+    display: flex;
+    gap: .3em;
+}
+
+body,
+html,
+.pages {
+    height: 100%;
+}
+
+@keyframes up {
+    0% {
+        opacity: 0;
+        transform: translateY(5px) scale(0.9);
+    }
+}
+
+@keyframes slide {
+    0% {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+}
+
+.page {
+    flex: 1;
+    padding: 1em;
+    height:calc(100vh - 6em);
+    overflow-y: auto;
+    display: none;
+    margin: auto;
+    width: fit-content;
+    animation: up .3s ease-out;
+    flex-direction: row;
+    gap: .5em;
+
+    &.active {
+        display: flex;
+    }
+
+    & .large {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    & .pane {
+        display: flex;
+        gap: .5em;
+        flex-direction: column;
+        animation: slide .3s;
+
+
+        &.pane.visibility {
+            display: none;
+        }
+
+        &.white {
+            border: 1px solid var(--cl3);
+            border-radius: 1em;
+            background-color: white;
+            padding: 1.5em;
+            min-width: 300px;
+        }
+
+        & h1 {
+            margin: .3em 0;
+        }
+    }
+}
+
+.label {
+    font-size: small;
+    opacity: .8;
+    font-weight: normal;
+    text-align: left;
+}
+
+p {
+    max-width: 700px;
+}
+
+table {
+    width: 100%;
+    border-spacing: 0;
+    overflow: hidden;
+
+    &>hover {
+        box-shadow: 0 5px 10px #00000034;
+    }
+
+    & tr:nth-child(even) {
+        background: var(--cl6);
+    }
+
+    & tr {
+        border-bottom: 1px solid var(--cl3);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+    }
+
+    & th {
+        font-size: small;
+        opacity: .8;
+        font-weight: normal;
+        text-align: left;
+    }
+
+    & td,
+    th {
+        padding: .5em;
+        border-right: 1px solid var(--cl3);
+
+        &:last-child {
+            border-right: 0;
+        }
+    }
+}
+
+.icnbtngrp {
+    display: flex;
+    flex-direction: row;
+
+    &>.btn {
+        padding: 5px;
+        border-radius: .5em;
+        transition: .3s;
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--cl3);
+        }
+    }
+}
+
+.white.pane.thin {
+    padding: .5em;
+}
+
+.horiz {
+    display: flex;
+    flex-direction: row !important;
+}
+
+.white.pane {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    padding: 1em;
+
+    & .btn {
+        padding: .5em;
+        border-radius: .5em;
+        transition: .3s;
+        cursor: pointer;
+        display: flex;
+        flex-direction: row;
+        gap: .3em;
+        padding-right: .8em;
+        align-items: center;
+
+        &>.icn {
+            font-size: 1em;
+        }
+
+        &:hover {
+            background-color: var(--cl5);
+
+            &>.icn {
+                transform: scale(1.3);
+
+                &.rotatediag {
+                    transform: rotate(45deg) scale(1.3);
+                }
+            }
+        }
+
+        &.worth {
+            background-color: var(--cl1);
+            color: var(--cl5);
+
+            &.onit {
+
+                background-color: var(--cl5);
+                color: var(--cl1);
+            }
+        }
+    }
+}
+
+.seperator {
+    flex: 1;
+}
+
+.instr {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.inpgrp {
+    display: flex;
+    flex-direction: row;
+    border-radius: .5em;
+    overflow: hidden;
+    border: 1px solid var(--cl3);
+    width: 100%;
+    max-width: 700px;
+    margin-top: .3em;
+
+    &>* {
+        border: 0;
+        min-width: 0;
+        background-color: transparent;
+        padding: .2em .3em;
+    }
+
+    &>input {
+        flex: 1;
+        padding: .2em .5em;
+        font-size: 1em;
+    }
+
+    &>button {
+        background-color: var(--cl1);
+        color: var(--cl6);
+        padding: .7em;
+        font-size: 1em;
+    }
+}
+
+.rotatediag {
+    transform: rotate(45deg);
+}
+
+#confirmElement {
+    display: none;
+    position: absolute;
+    bottom: 2em;
+    right: 1em;
+    z-index: 99;
+    max-width: 300px;
+    box-shadow: 0 5px 10px #00000066;
+}
+
+#confirmElement.show {
+    display: flex
+}
+
+.btngrp {
+    display: flex;
+    width: 100%;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    gap: .3em;
+
+    &>.btn {
+        padding: .5em .7em;
+        display: flex;
+        flex: 1;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        flex-direction: row;
+        border-radius: .5em;
+        color: white;
+
+        &>.icn {
+            font-size: 1.2em;
+        }
+    }
+}
+
+input[type="checkbox"] {
+    transform: scale(1.5);
+    margin: 1em;
+}
+
+#progressPane {
+    display: none;
+}
+
+.progressCont {
+    width: 100%;
+    height: 1em;
+    background: var(--cl4);
+    border-radius: 1em;
+
+    &>.progressBar {
+        height: 100%;
+        background-image: linear-gradient(90deg, #e4e42e, #5abe57);
+        border-radius: 1em;
+    }
+}
