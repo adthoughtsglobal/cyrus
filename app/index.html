@@ -21,21 +21,17 @@
             <div class="pages_nav">
                 <div class="nav_hl"></div>
 
+                <div class="btn" clickTgt="home">
+                    <div class="icn">home</div>
+                    <div class="title">Home</div>
+                </div>
                 <div class="btn active" clickTgt="connections">
                     <div class="icn">devices</div>
-                    <div class="title">Connections</div>
+                    <div class="title">Clients</div>
                 </div>
                 <div class="btn" clickTgt="files">
                     <div class="icn">folder</div>
                     <div class="title">Files</div>
-                </div>
-                <div class="btn" clickTgt="hub">
-                    <div class="icn">network_node</div>
-                    <div class="title">Hub</div>
-                </div>
-                <div class="btn" clickTgt="lists">
-                    <div class="icn">shield_lock</div>
-                    <div class="title">Lists</div>
                 </div>
                 <div class="btn" clickTgt="lists">
                     <div class="icn">settings</div>
@@ -62,7 +58,21 @@
                             <div class="title">New client</div>
                         </div>
                     </div>
-                    <div class="white pane horiz visibility" id="newClInstrPan">
+
+                    <div class="large white pane">
+                        <table id="connections_table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nickname</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </table>
+                    </div>
+                </div>
+                <div class="pane">
+                    <div class="white large pane visibility" id="newClInstrPan">
                         <div class="instr">
                             <div style="margin-bottom: .5em;">Scan the QR or use string for manual setup</div>
                             <div class="label">Manual setup string:</div>
@@ -89,33 +99,8 @@
                             </script>
 
                         </div>
-                        <div class="seperator"></div>
-                        <div id="qrScannable"></div>
+                        <div id="qrScannable" style="margin: 1em auto;"></div>
 
-                    </div>
-                    <div class="large white pane">
-                        <table id="connections_table">
-                            <tr>
-                                <th>ID</th>
-                                <th>Nickname</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-
-                        </table>
-                    </div>
-                </div>
-                <div class="pane">
-                    <div class="white pane" id="progressPane">
-                        <div class="label" id="progressLabel"></div>
-                        <div class="progressCont">
-                            <div class="progressBar"></div>
-                        </div>
-                    </div>
-                    <div class="white pane large">
-                        <div class="label">Stats</div>
-                        <h1 id="connected_number">0</h1>
-                        <s1 class="subheading">Clients connected</s1>
                     </div>
                 </div>
             </div>
@@ -152,6 +137,27 @@
                     <div class="white pane large">
                         <div class="label">Total Memory Used:</div>
                         <h1 id="total_mem_used">100GB</h1>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="home">
+                <div class="pane large">
+                    <canvas id="graph" width="260" height="260"></canvas>
+
+                </div>
+                <div class="pane">
+
+                    <div class="white pane" id="progressPane">
+                        <div class="label" id="progressLabel"></div>
+                        <div class="progressCont">
+                            <div class="progressBar"></div>
+                        </div>
+                    </div>
+                    <div class="white pane large">
+                        <div class="label">Stats</div>
+                        <h1 id="connected_number">0</h1>
+                        <s1 class="subheading">Clients connected</s1>
                     </div>
                 </div>
             </div>

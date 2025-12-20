@@ -141,6 +141,58 @@ addbtnitself.addEventListener("click", () => {
     addicn.classList.toggle("rotatediag");
     newClInstrPan.classList.toggle("visibility")
 })
+const canvas = document.getElementById('graph')
+const ctx = canvas.getContext('2d')
+
+let prevCount = 0
+let animT = 1
+
+function renderGraph() {
+    const clients = window.host.clients
+    if (clients.length > prevCount) animT = 0
+    prevCount = clients.length
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    const cx = canvas.width / 2
+    const cy = canvas.height / 2
+    const r = Math.min(cx, cy) - 30
+
+    ctx.fillStyle = '#9e9e9e'
+    ctx.beginPath()
+    ctx.arc(cx, cy, 13, 0, Math.PI * 2)
+    ctx.fill()
+
+    const n = clients.length
+    clients.forEach((c, i) => {
+        const a = (Math.PI * 2 / n) * i
+        const tx = cx + Math.cos(a) * r
+        const ty = cy + Math.sin(a) * r
+
+        const k = Math.min(1, animT)
+
+        const x = cx + (tx - cx) * k
+        const y = cy + (ty - cy) * k
+
+        ctx.strokeStyle = '#9e9e9e'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(cx, cy)
+        ctx.lineTo(x, y)
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.arc(x, y, 5, 0, Math.PI * 2)
+        ctx.fill()
+    })
+}
+
+function tick() {
+    animT += 0.08
+    renderGraph()
+    requestAnimationFrame(tick)
+}
+
 const tbody = document.querySelector('#connections_table')
 let tbodyheaders = tbody.innerHTML;
 function renderClientsList() {
@@ -180,7 +232,7 @@ function renderClientsList() {
         reconnect.textContent = 'refresh'
         reconnect.onclick = () => {
             reconnect.textContent = 'rotate_right'
-            host.reconnectbyid(c.clientId).then(renderClientsList())
+            host.reconnectbyid(c.clientId).then(renderClientsList)
         }
 
         const nick = document.createElement('div')
@@ -198,6 +250,9 @@ function renderClientsList() {
         tr.append(tdId, tdNick, tdStatus, tdActions)
         tbody.appendChild(tr)
     });
+    console.log(window.host)
+    renderGraph();
+    tick();
 }
 
 const justConfirmPane = document.getElementById("confirmElement")
